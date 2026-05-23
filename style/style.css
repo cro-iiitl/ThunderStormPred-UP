@@ -1,0 +1,66 @@
+/* static/css/style.css */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.card-header {
+    font-weight: bold;
+}
+
+.display-4 {
+    font-weight: bold;
+}
+
+footer {
+    border-top: 1px solid #e9ecef;
+}
+
+/* Custom colors for risk levels */
+.bg-elevated {
+    background-color: #fd7e14;
+}
+
+.text-elevated {
+    color: #fd7e14;
+}
+
+/* Animation for thunderbolt icon */
+@keyframes flash {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.navbar-brand .fas.fa-bolt {
+    animation: flash 2s infinite;
+    color: yellow;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .map-container {
+        height: 300px;
+    }
+    
+    .display-4 {
+        font-size: 2.5rem;
+    }
+}

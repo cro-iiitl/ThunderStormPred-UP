@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+
+{% block additional_head %}
+<style>
+    .map-container {
+        height: 600px;
+        width: 100%;
+        overflow: hidden;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        background-color: #000;
+    }
+    .lightning-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .stat-card {
+        flex: 1;
+        min-width: 150px;
+        background-color: rgba(0, 0, 0, 0.8);
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        color: white;
+    }
+    .stat-card h3 {
+        font-size: 2rem;
+        margin: 5px 0;
+    }
+    .stat-card p {
+        color: rgba(255, 255, 255, 0.7);
+        margin: 0;
+    }
+    .stat-card.strikes {
+        background: linear-gradient(135deg, #1e3c72, #2a5298);
+    }
+    .stat-card.average {
+        background: linear-gradient(135deg, #f2994a, #f2c94c);
+        color: #333;
+    }
+    .stat-card.average p {
+        color: rgba(0, 0, 0, 0.7);
+    }
+    .stat-card.max {
+        background: linear-gradient(135deg, #cb2d3e, #ef473a);
+    }
+    .lightning-table {
+        color: white;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 5px;
+    }
+    .lightning-table th {
+        text-align: left;
+        padding: 10px;
+        background-color: rgba(255, 255, 255, 0.1);
+        font-weight: normal;
+        color: rgba(255, 255, 255, 0.7);
+    }
+    .lightning-table td {
+        padding: 10px;
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    .lightning-table tr:hover td {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    .intensity-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+    .intensity-severe {
+        background-color: #ff0000;
+    }
+    .intensity-strong {
+        background-color: #ff9900;
+    }
+    .intensity-moderate {
+        background-color: #ffff00;
+    }
+    .intensity-light {
+        background-color: #3366ff;
+    }
+    .page-dark {
+        background-color: #121212;
+        color: white;
+    }
+    .card-dark {
+        background-color: #1e1e1e;
+        border: none;
+    }
+    .card-header-dark {
+        background-color: #2a2a2a;
+        color: white;
+        border: none;
+    }
+    .time-filter {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    .time-filter button {
+        padding: 5px 15px;
+        background-color: #333;
+        border: none;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    .time-filter button.active {
+        background-color: #007bff;
+    }
+    .refresh-indicator {
+        display: inline-block;
+        margin-left: 10px;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+    @keyframes pulse {
+        0% { opacity: 0.5; }
+        50% { opacity: 1; }
+        100% { opacity: 0.5; }
+    }
+    .live-indicator {
+        display: inline-flex;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+    }
+    .live-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #ff0000;
+        border-radius: 50%;
+        margin-right: 5px;
+        animation: pulse 2s infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-dark py-3">
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="text-center mb-4">
+                    <i class="fas fa-bolt text-warning"></i> Real-Time Lightning Tracker
+                </h1>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="live-indicator">
+                        <span class="live-dot"></span> LIVE
+                        <span class="refresh-indicator">Auto-refreshes every 5 minutes</span>
+                    </div>
+                    <div class="time-filter">
+                        <button class="active" id="hour1">Last Hour</button>
+                        <button id="hour6">6 Hours</button>
+                        <button id="hour24">24 Hours</button>
+                    </div>
+                </div>
+                
+                {% if not has_data %}
+                    <div class="alert alert-info">
+                        {{ message }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if has_data %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="lightning-stats">
+                    <div class="stat-card strikes">
+                        <p>Total Strikes</p>
+                        <h3>{{ stats.strike_count }}</h3>
+                    </div>
+                    <div class="stat-card average">
+                        <p>Average Intensity</p>
+                        <h3>{{ stats.average_intensity }} <small>kA</small></h3>
+                    </div>
+                    <div class="stat-card max">
+                        <p>Maximum Intensity</p>
+                        <h3>{{ stats.max_intensity }} <small>kA</small></h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card card-dark mb-4">
+                    <div class="card-header card-header-dark">
+                        <h4>
+                            <i class="fas fa-map-marked-alt"></i> Lightning Activity Map
+                            <small class="text-muted">Updated: {{ stats.data_updated }}</small>
+                        </h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="map-container">
+                            {{ map|safe }}
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted bg-dark">
+                        <div class="d-flex justify-content-between">
+                            <span>
+                                <i class="fas fa-info-circle"></i> Showing lightning strikes across Uttar Pradesh
+                            </span>
+                            <span>
+                                <i class="fas fa-bolt text-warning"></i> Lightning data integrated with storm prediction
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card card-dark mb-4">
+                    <div class="card-header card-header-dark">
+                        <h4><i class="fas fa-list"></i> Recent Lightning Strikes</h4>
+                    </div>
+                    <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
+                        <table class="lightning-table" id="lightning-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Intensity</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="card card-dark">
+                    <div class="card-header card-header-dark">
+                        <h4><i class="fas fa-exclamation-triangle text-warning"></i> Safety Information</h4>
+                    </div>
+                    <div class="card-body">
+                        <h5>During Active Lightning:</h5>
+                        <ul>
+                            <li>Seek shelter in a building or hard-topped vehicle</li>
+                            <li>Stay away from open areas, tall trees, and metal objects</li>
+                            <li>Wait 30 minutes after the last thunder before going outside</li>
+                            <li>Avoid plumbing and electrical equipment</li>
+                            <li>Stay off corded phones, computers, and other electrical devices</li>
+                        </ul>
+                        <p class="font-weight-bold text-warning">When Thunder Roars, Go Indoors!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card card-dark">
+                    <div class="card-header card-header-dark">
+                        <h4><i class="fas fa-info-circle"></i> Understanding Lightning Data</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Lightning Intensity</h5>
+                                <p>Lightning intensity is measured in kiloamperes (kA), which represents the electric current in the lightning strike.</p>
+                                <ul>
+                                    <li><span class="intensity-indicator intensity-severe"></span> <strong>Severe (80+ kA):</strong> Extremely powerful strikes capable of significant damage</li>
+                                    <li><span class="intensity-indicator intensity-strong"></span> <strong>Strong (60-80 kA):</strong> Very dangerous strikes with high potential for damage</li>
+                                    <li><span class="intensity-indicator intensity-moderate"></span> <strong>Moderate (40-60 kA):</strong> Dangerous strikes of medium intensity</li>
+                                    <li><span class="intensity-indicator intensity-light"></span> <strong>Light (0-40 kA):</strong> Lower intensity strikes, still potentially dangerous</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Strike Types</h5>
+                                <p>Lightning occurs in several different forms:</p>
+                                <ul>
+                                    <li><strong>Cloud-to-Ground (CG):</strong> Most dangerous type that strikes the earth directly</li>
+                                    <li><strong>Intra-Cloud (IC):</strong> Occurs within the same cloud and doesn't reach the ground</li>
+                                    <li><strong>Cloud-to-Cloud:</strong> Discharges between separate clouds</li>
+                                    <li><strong>Cloud-to-Air:</strong> Discharges from a cloud into the air</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if has_data %}
+<script>
+    // Lightning data from the server
+    var lightningData = {{ lightning_data|safe }};
+    
+    // Format the time in a human-readable way
+    function formatTime(isoTime) {
+        const date = new Date(isoTime);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    
+    // Calculate time ago
+    function timeAgo(isoTime) {
+        const date = new Date(isoTime);
+        const seconds = Math.floor((new Date() - date) / 1000);
+        
+        if (seconds < 60) return `${seconds}s ago`;
+        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+        if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+        return `${Math.floor(seconds / 86400)}d ago`;
+    }
+    
+    // Get intensity class
+    function getIntensityClass(intensity) {
+        if (intensity >= 80) return 'intensity-severe';
+        if (intensity >= 60) return 'intensity-strong';
+        if (intensity >= 40) return 'intensity-moderate';
+        return 'intensity-light';
+    }
+    
+    // Populate the lightning table
+    function populateLightningTable() {
+        const tableBody = document.querySelector('#lightning-table tbody');
+        tableBody.innerHTML = '';
+        
+        if (lightningData.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td colspan="3" class="text-center">No lightning strikes detected</td>`;
+            tableBody.appendChild(row);
+            return;
+        }
+        
+        lightningData.forEach(strike => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${formatTime(strike.timestamp)} <small>(${timeAgo(strike.timestamp)})</small></td>
+                <td><span class="intensity-indicator ${getIntensityClass(strike.intensity)}"></span> ${strike.intensity} kA</td>
+                <td>${strike.type}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+    
+    // Initialize the table
+    populateLightningTable();
+    
+    // Time filter functionality
+    document.querySelectorAll('.time-filter button').forEach(button => {
+        button.addEventListener('click', function() {
+            // Update active button
+            document.querySelectorAll('.time-filter button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // In a real implementation, this would fetch new data
+            // For now, just show a loading message
+            const tableBody = document.querySelector('#lightning-table tbody');
+            tableBody.innerHTML = '<tr><td colspan="3" class="text-center">Loading...</td></tr>';
+            
+            // Simulate loading new data after 1 second
+            setTimeout(() => {
+                populateLightningTable();
+            }, 1000);
+        });
+    });
+    
+    // Auto-refresh the page every 5 minutes
+    setTimeout(function() {
+        location.reload();
+    }, 300000);
+</script>
+{% endif %}
+{% endblock %}

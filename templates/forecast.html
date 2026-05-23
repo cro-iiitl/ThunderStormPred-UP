@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block additional_head %}
+<style>
+    .map-container {
+        height: 500px;
+        width: 100%;
+        overflow: hidden;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .hour-tab {
+        cursor: pointer;
+        padding: 10px 15px;
+        border-radius: 5px;
+        margin: 5px;
+        background-color: #f8f9fa;
+        transition: background-color 0.3s;
+    }
+    .hour-tab.active {
+        background-color: #007bff;
+        color: white;
+    }
+    .hour-content {
+        display: none;
+    }
+    .hour-content.active {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="text-center mb-4">
+            <i class="fas fa-cloud-bolt text-primary"></i> Detailed Forecast
+        </h1>
+        {% if not has_data %}
+            <div class="alert alert-info">
+                {{ message }}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Hourly forecast for the next {{ hours|length }} hours
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if has_data %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex flex-wrap justify-content-center" id="hour-tabs">
+            {% for hour in hours %}
+            <div class="hour-tab {% if hour == 1 %}active{% endif %}" data-hour="{{ hour }}">
+                <i class="far fa-clock"></i> +{{ hour }} hour{% if hour > 1 %}s{% endif %}
+                {% if hourly_maps[hour].high_risk_areas > 0 %}
+                <span class="badge badge-danger ml-2">{{ hourly_maps[hour].high_risk_areas }}</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        {% for hour in hours %}
+        <div class="hour-content {% if hour == 1 %}active{% endif %}" id="hour-{{ hour }}">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>
+                        <i class="fas fa-bolt"></i> 
+                        Forecast for {{ hourly_maps[hour].forecast_time }}
+                        ({{ hour }} hour{% if hour > 1 %}s{% endif %} ahead)
+                    </h4>
+                </div>
+                <div class="card-body p-0">
+                    <div class="map-container">
+                        {{ hourly_maps[hour].map|safe }}
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <div class="row">
+                        <div class="col-md-6">
+                            {% if hourly_maps[hour].high_risk_areas > 0 %}
+                            <p class="text-danger">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                {{ hourly_maps[hour].high_risk_areas }} high-risk areas detected for this timeframe
+                            </p>
+                            {% else %}
+                            <p class="text-success">
+                                <i class="fas fa-check-circle"></i>
+                                No high-risk areas detected for this timeframe
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <p class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                Forecast confidence decreases with longer prediction horizons
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Tab functionality
+    $(document).ready(function() {
+        $('.hour-tab').click(function() {
+            // Get the hour
+            var hour = $(this).data('hour');
+            
+            // Update active tab
+            $('.hour-tab').removeClass('active');
+            $(this).addClass('active');
+            
+            // Show corresponding content
+            $('.hour-content').removeClass('active');
+            $('#hour-' + hour).addClass('active');
+        });
+    });
+    
+    // Auto-refresh the page every 15 minutes
+    setTimeout(function() {
+        location.reload();
+    }, 900000);
+</script>
+{% endblock %}

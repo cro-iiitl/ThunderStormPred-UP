@@ -1,0 +1,164 @@
+<!-- templates/index.html -->
+{% extends 'base.html' %}
+
+{% block additional_head %}
+<style>
+    .risk-indicator {
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        border-radius: 5px;
+    }
+    .stat-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .map-container {
+        height: 500px;
+        width: 100%;
+        overflow: hidden;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="text-center mb-4">
+            <i class="fas fa-bolt text-warning"></i> Uttar Pradesh Thunderstorm Prediction
+        </h1>
+        {% if not has_data %}
+            <div class="alert alert-info">
+                {{ message }}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Data last updated: {{ stats.data_updated }} | Current forecast for: {{ stats.forecast_time }}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if has_data %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">High Risk Areas</h5>
+                <p class="display-4 text-danger">{{ stats.high_risk_areas }}</p>
+                <p class="text-muted">Locations with High/Severe risk</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">Average Risk</h5>
+                <p class="display-4 {% if stats.average_probability > 50 %}text-warning{% else %}text-success{% endif %}">
+                    {{ "%.1f"|format(stats.average_probability) }}%
+                </p>
+                <p class="text-muted">Average lightning probability</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <h5 class="card-title text-center">Risk Level Distribution</h5>
+                <div class="row text-center">
+                    <div class="col">
+                        <div class="risk-indicator bg-success">
+                            {{ risk_counts.get('Low', 0) }}
+                        </div>
+                        <p>Low</p>
+                    </div>
+                    <div class="col">
+                        <div class="risk-indicator bg-info">
+                            {{ risk_counts.get('Moderate', 0) }}
+                        </div>
+                        <p>Moderate</p>
+                    </div>
+                    <div class="col">
+                        <div class="risk-indicator bg-warning">
+                            {{ risk_counts.get('Elevated', 0) }}
+                        </div>
+                        <p>Elevated</p>
+                    </div>
+                    <div class="col">
+                        <div class="risk-indicator bg-danger">
+                            {{ risk_counts.get('High', 0) + risk_counts.get('Severe', 0) }}
+                        </div>
+                        <p>High/Severe</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4><i class="fas fa-map-marked-alt"></i> Current Thunderstorm Prediction Map</h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="map-container">
+                    {{ map|safe }}
+                </div>
+            </div>
+            <div class="card-footer bg-light">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><i class="fas fa-info-circle"></i> The heat map shows the probability of thunderstorm activity.</p>
+                    </div>
+                    <div class="col-md-6 text-right">
+                        <a href="/forecast" class="btn btn-primary">View Detailed Forecast <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4><i class="fas fa-exclamation-triangle"></i> Safety Information</h4>
+            </div>
+            <div class="card-body">
+                <h5>If thunderstorms are predicted in your area:</h5>
+                <ul>
+                    <li>Stay indoors and away from windows during thunderstorms</li>
+                    <li>Avoid open fields, hilltops, and isolated tall trees</li>
+                    <li>Stay away from water bodies and metal objects</li>
+                    <li>Unplug electrical appliances before the storm arrives</li>
+                    <li>Do not use corded phones during lightning</li>
+                    <li>If you are outside, seek shelter in a building or car</li>
+                </ul>
+                <p class="font-weight-bold text-danger">Remember: "When thunder roars, go indoors!"</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-refresh the page every 10 minutes
+    setTimeout(function() {
+        location.reload();
+    }, 600000);
+</script>
+{% endblock %}

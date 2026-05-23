@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block additional_head %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="text-center mb-4">
+            <i class="fas fa-chart-line text-primary"></i> Historical Data Analysis
+        </h1>
+        {% if not has_data %}
+            <div class="alert alert-info">
+                {{ message }}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Showing data from the past 7 days
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if has_data %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4><i class="fas fa-bolt"></i> Thunderstorm Occurrences</h4>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="thunderstormChart"></canvas>
+                </div>
+                <p class="text-muted text-center">
+                    <i class="fas fa-info-circle"></i>
+                    Number of locations with recorded thunderstorm activity each day
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h4><i class="fas fa-check-double"></i> Prediction Accuracy</h4>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="accuracyChart"></canvas>
+                </div>
+                <p class="text-muted text-center">
+                    <i class="fas fa-info-circle"></i>
+                    Daily prediction accuracy (comparing forecasts with actual observations)
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4><i class="fas fa-info-circle"></i> Model Information</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Model Architecture</h5>
+                        <ul>
+                            <li>Type: Bidirectional LSTM Neural Network</li>
+                            <li>Input: 24-hour weather sequence</li>
+                            <li>Features: Temperature, humidity, pressure, wind, etc.</li>
+                            <li>Output: Lightning probability (0-1)</li>
+                            <li>Accuracy: ~85% (varies by season)</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Data Sources</h5>
+                        <ul>
+                            <li>Weather data from multiple meteorological stations</li>
+                            <li>Satellite imagery analysis</li>
+                            <li>Historical lightning strike data</li>
+                            <li>Atmospheric sounding data</li>
+                            <li>Updated hourly for real-time predictions</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if has_data %}
+<script>
+    // Parse data from Flask
+    var dates = {{ dates|safe }};
+    var counts = {{ counts|safe }};
+    var accuracyData = {{ accuracy_data|safe }};
+    
+    // Thunderstorm occurrences chart
+    var thunderstormCtx = document.getElementById('thunderstormChart').getContext('2d');
+    var thunderstormChart = new Chart(thunderstormCtx, {
+        type: 'bar',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Thunderstorm Occurrences',
+                data: counts,
+                backgroundColor: 'rgba(255, 193, 7, 0.5)',
+                borderColor: 'rgba(255, 193, 7, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Locations'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Accuracy chart
+    var accuracyCtx = document.getElementById('accuracyChart').getContext('2d');
+    var accuracyChart = new Chart(accuracyCtx, {
+        type: 'line',
+        data: {
+            labels: accuracyData.dates,
+            datasets: [{
+                label: 'Prediction Accuracy',
+                data: accuracyData.accuracy,
+                backgroundColor: 'rgba(23, 162, 184, 0.2)',
+                borderColor: 'rgba(23, 162, 184, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(23, 162, 184, 1)',
+                tension: 0.2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1,
+                    title: {
+                        display: true,
+                        text: 'Accuracy (0-1)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return (value * 100) + '%';
+                        }
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}
